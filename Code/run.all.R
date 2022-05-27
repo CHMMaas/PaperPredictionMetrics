@@ -34,13 +34,13 @@ compute.new.results <- TRUE   # compute new results or use old files
 #####
 ##### Simulations
 #####
-R <- 0                      # repetitions in simulation (R = 100)
+R <- 100                      # repetitions in simulation (R = 100)
 plot.cal <- TRUE              # if TRUE calibration plot of simulation is made
 
 #####
 ##### Application
 #####
-B <- 100                      # number of bootstrap samples (additional to original sample computations) (B = 100)
+B <- 0                      # number of bootstrap samples (additional to original sample computations) (B = 100)
 effect.indicator <- TRUE      # use penalized treatment effect model to estimate treatment effect (TRUE)
 CF.indicator <- TRUE          # use causal forest to estimate treatment effect (TRUE)
 
