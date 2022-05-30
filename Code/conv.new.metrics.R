@@ -33,7 +33,7 @@ X <- cbind(1,c(rep(0,n.population/2),rep(1,n.population/2)),X)
 
 # c = intercept
 # z = treatement
-colnames(X) <- c("c","z", paste("x", 1:12,sep=""))
+colnames(X) <- c("c", "z", paste("x", 1:12, sep=""))
 head(X)
 
 logit.y <- rep(NA,n.population)
