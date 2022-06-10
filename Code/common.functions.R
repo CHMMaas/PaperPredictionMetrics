@@ -113,19 +113,10 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 
     # plot suboptimal models
     cat('Plot log odds \n')
-    ymin <- min(qlogis(c(pred.optimal$p.0, pred.optimal$p.1,
-                         pred.suboptimal.1$p.0, pred.suboptimal.1$p.1,
-                         pred.suboptimal.2$p.0, pred.suboptimal.2$p.1,
-                         pred.suboptimal.3$p.0, pred.suboptimal.3$p.1)))
-    ymax <- max(qlogis(c(pred.optimal$p.0, pred.optimal$p.1,
-                         pred.suboptimal.1$p.0, pred.suboptimal.1$p.1,
-                         pred.suboptimal.2$p.0, pred.suboptimal.2$p.1,
-                         pred.suboptimal.3$p.0, pred.suboptimal.3$p.1)))
     for (model.name in list.model.names){
       pred <- eval(parse(text=paste0('pred.', model.name)))
       plot.log.odss(treatment.arm=treatment.arm, model=model.name,
-                    lp.test=X.test$lp.test, pred=pred,
-                    ymin=ymin, ymax=ymax)
+                    lp.test=X.test$lp.test, pred=pred)
     }
 
     # STEP 5: match patient pairs by distance of covariates
@@ -197,29 +188,23 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
   }
 
   # calibration plot limits
-  xminval <- min(0, dup.matched.patients$matched.tau.hat.optimal,
-                 dup.matched.patients$matched.tau.hat.suboptimal.1,
-                 dup.matched.patients$matched.tau.hat.suboptimal.2,
-                 dup.matched.patients$matched.tau.hat.suboptimal.3)
-  xmaxval <- max(dup.matched.patients$matched.tau.hat.optimal,
-                 dup.matched.patients$matched.tau.hat.suboptimal.1,
-                 dup.matched.patients$matched.tau.hat.suboptimal.2,
-                 dup.matched.patients$matched.tau.hat.suboptimal.3)
-  limits.benefit <- list(xmin=xminval, xmax=xmaxval, ymin=xminval, ymax=xmaxval)
-
-  # put table in right bottom corner
+  limits.benefit <- list(xmax=1, ymax=1)
   if (treatment.arm=="life"){
-    xmin.fact <- 4/3
-    ymax.fact <- 14/13
+    limits.benefit$xmin <- -0.6
+    limits.benefit$ymin <- limits.benefit$xmin
   } else if (treatment.arm=="met"){
-    xmin.fact <- 14/13
-    ymax.fact <- 6/5
+    limits.benefit$xmin <- -0.8
+    limits.benefit$ymin <- limits.benefit$xmin
   }
-  limits.table <- list(xmin=limits.benefit$xmin-limits.benefit$xmin*xmin.fact,
-                       xmax=limits.benefit$xmax,
-                       ymin=limits.benefit$ymin,
-                       ymax=limits.benefit$ymax-limits.benefit$ymax*ymax.fact)
-
+  
+  # put table in right bottom corner
+  limits.table <- list(xmax=1, ymax=0, ymin=limits.benefit$ymin)
+  if (treatment.arm=="life"){
+    limits.table$xmin <- 0.2
+  } else if (treatment.arm=="met"){
+    limits.table$xmin <- 0.1
+    limits.table$ymax <- -0.1
+  }
   # OBTAIN MODEL METRICS AND PLOT CALIBRATION
   panel.nr.df <- data.frame(name=c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3"), panel=c("A", "B", "C", "D"))
   cat('Obtaining model metrics... \n')
@@ -230,8 +215,8 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
     matched.df <- data.frame(subclass=dup.matched.patients$subclass,
                              matched.tau.hat=eval(parse(text=paste0('dup.matched.patients$matched.tau.hat.', model.name))),
                              matched.tau.obs=eval(parse(text=paste0('dup.matched.patients$matched.updated.tau.obs'))),
-                             p.0=eval(parse(text=paste0('dup.matched.patients$matched.p.0.', model.name))),
-                             p.1=eval(parse(text=paste0('dup.matched.patients$matched.p.1.', model.name))))
+                             matched.p.0=eval(parse(text=paste0('dup.matched.patients$matched.p.0.', model.name))),
+                             matched.p.1=eval(parse(text=paste0('dup.matched.patients$matched.p.1.', model.name))))
 
     # new metrics
     overall.cal.measure <- mean(matched.df$matched.tau.obs) - mean(matched.df$matched.tau.hat)
@@ -252,19 +237,25 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
     # PLOT CALIBRATION PLOT
     if (plot.cal){
       cal.plot <- calibration.plot(matched.patients=out.E$matched.patients, g=5,
-                                   limits=limits.benefit, plot.CI=FALSE)
-
+                                   plot.CI=FALSE, show=FALSE)
+      cat("Quantiles: ", round(cal.plot$quantiles, 3), '\n')
       metric.table <- cbind(metrics.df[1:7, 1],
                             sprintf("%.3f", as.numeric(metrics)))
-      cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
+      plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                                    theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                 bg_params=list(fill=c("lightgrey", 'white'))))),
-                                                                   xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)
-      cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotate(geom="label", x=limits.benefit$xmin, y=limits.benefit$ymax, size=15, fontface=2, fill="white", label.size=NA,
-                                                          label=panel.nr.df[panel.nr.df$name==model.name, "panel"])
-      cal.plot$build.plot <- cal.plot$build.plot+ggplot2::theme_light(base_size=25)                   # increase font size
-      cal.plot$build.plot <- cal.plot$build.plot+ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
-      plot <- cal.plot$build.plot
+                                                                   xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)+
+        ggplot2::scale_y_continuous(labels=round(seq(from=min(limits.benefit$ymin, -1), to=max(limits.benefit$ymax, 1), length.out=5), 1),
+                                    breaks=round(seq(from=min(limits.benefit$ymin, -1), to=max(limits.benefit$ymax, 1), length.out=5), 1),
+                                    limits=c(limits.benefit$ymin, limits.benefit$ymax))+
+        ggplot2::scale_x_continuous(labels=round(seq(from=min(limits.benefit$xmin, 0), to=max(limits.benefit$xmax, 1), length.out=5), 1),
+                                    breaks=round(seq(from=min(limits.benefit$xmin, 0), to=max(limits.benefit$xmax, 1), length.out=5), 1),
+                                    limits=c(limits.benefit$xmin, limits.benefit$xmax))+
+        ggplot2::theme(plot.title=element_text(hjust=0.5))+
+        ggplot2::annotate(geom="label", x=limits.benefit$xmin, y=limits.benefit$ymax, size=15, fontface=2, fill="white", label.size=NA,
+                                                          label=panel.nr.df[panel.nr.df$name==model.name, "panel"])+
+        ggplot2::theme_light(base_size=25)+                   # increase font size
+        ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
       save(plot, file=paste0('./Results/', treatment.arm, '/', model.name, '.simulation.calibration.plot.Rdata'))
     }
   }
@@ -284,26 +275,36 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 #######
 ####### PLOT LOG ODDS
 #######
-plot.log.odss <- function(treatment.arm=NULL, model=NULL, lp.test=NULL, pred=NULL,
-                          ymin=0, ymax=0){
+plot.log.odss <- function(treatment.arm=NULL, model=NULL, lp.test=NULL, pred=NULL){
   plot <- ggplot(data=data.frame(lp.test=lp.test, p.0=qlogis(pred$p.0),
                                  p.1=qlogis(pred$p.1)), aes(x=lp.test), show.legend=TRUE)
   x.lab.plot <- ""
   y.lab.plot <- ""
-  plot <- plot+ggplot2::labs(x=x.lab.plot, y=y.lab.plot, color=" ") # axis names
-  plot <- plot+ggplot2::ylim(ymin, ymax)                            # axis limits
-  plot <- plot+ggplot2::geom_line(aes(y=p.0), color="blue", size=1) # draw p.0
-  plot <- plot+ggplot2::geom_line(aes(y=p.1), color="red", size=1)  # draw p.1
-  plot <- plot+ggplot2::theme_light(base_size=25)                   # increase font size
+  plot <- plot+ggplot2::labs(x=x.lab.plot, y=y.lab.plot, color=" ")   # axis names
+  plot <- plot+ggplot2::geom_line(aes(y=p.0), color="blue", size=1)   # draw p.0
+  plot <- plot+ggplot2::geom_line(aes(y=p.1), color="red", size=1)    # draw p.1
+  plot <- plot+ggplot2::theme_light(base_size=25)                     # increase font size
   plot <- plot+ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
   panel.nr.df <- data.frame(name=c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3"), panel=c("A", "B", "C", "D"))
   if (treatment.arm=="life"){
-    x.val <- 48
+    ymin <- -10
+    ymax <- 10
+    xmin <- 47
+    xmax <- 57
   }
   else if (treatment.arm=="met"){
-    x.val <- 46
+    ymin <- -10
+    ymax <- 10
+    xmin <- 45
+    xmax <- 53
   }
-  plot <- plot+ggplot2::annotate(geom="label", x=x.val, y=7, size=15, fontface=2, fill="white", label.size=NA,
+  plot <- plot+ggplot2::scale_y_continuous(labels=round(seq(ymin, ymax, 2), 0), 
+                                           breaks=round(seq(ymin, ymax, 2), 0), 
+                                           limits=c(ymin, ymax)) # axis limits
+  plot <- plot+ggplot2::scale_x_continuous(labels=round(seq(xmin, xmax, 2), 0),
+                                           breaks=round(seq(xmin, xmax, 2), 0), 
+                                           limits=c(xmin, xmax)) # axis limits
+  plot <- plot+ggplot2::annotate(geom="label", x=xmin, y=ymax, size=15, fontface=2, fill="white", label.size=NA,
                         label=panel.nr.df[panel.nr.df$name==model, "panel"])
   save(plot, file=paste0('./Results/', treatment.arm, '/', 'log.odds.', model, '.Rdata'))
 }
@@ -318,7 +319,7 @@ metric.values.three.models <- function(boot=0, pred=NULL,
   limits.benefit <- list(xmin=-0.5,
                               xmax=1,
                               ymin=-1.5,
-                              ymax=1.6)
+                              ymax=1.5)
   xmin.fact <- 1.57
   ymax.fact <- 1.3
   limits.table <- list(xmin=limits.benefit$xmin-limits.benefit$xmin*xmin.fact,
@@ -394,7 +395,7 @@ metric.values.three.models <- function(boot=0, pred=NULL,
     # plot calibration for training and test set
     if (boot == -1 | boot == 0){
       cal.plot <- calibration.plot(matched.patients=out.E$matched.patients, g=5,
-                                   limits=limits.benefit, plot.CI=TRUE, show=FALSE)
+                                   plot.CI=TRUE, show=FALSE)
       assign(paste0('cal.plot.', method), cal.plot$build.plot)
     } else{
       cal.plot.risk <- NA
@@ -522,30 +523,31 @@ application <- function(original.data=NULL, treatment.arm=NULL, folds=5, B=B,
   # plot calibration
   for (method in c('risk', 'effect', 'CF')){
     for (data.name in c('train', 'test')){
-      cal.plot <- eval(parse(text=paste0('matched.', data.name, '$cal.plot.', method)))
-      cal.plot <- cal.plot+ggplot2::theme_light(base_size=25)                   # increase font size
-      cal.plot <- cal.plot+ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
-
       # limits calibration plot
       limits.benefit <- list(xmin=-0.5,
                              xmax=1,
                              ymin=-1.5,
-                             ymax=1.6)
-
+                             ymax=1.5)
+      cal.plot <- eval(parse(text=paste0('matched.', data.name, '$cal.plot.', method)))
+      cal.plot <- cal.plot+ggplot2::theme_light(base_size=25)+                   # increase font size
+        ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())+
+        ggplot2::scale_y_continuous(labels=seq(limits.benefit$ymin, limits.benefit$ymax, length.out=7),
+                                    breaks=seq(limits.benefit$ymin, limits.benefit$ymax, length.out=7),
+                                    limits=c(limits.benefit$ymin, limits.benefit$ymax+0.1))+
+        ggplot2::scale_x_continuous(labels=seq(limits.benefit$xmin, limits.benefit$xmax, length.out=7),
+                                    breaks=seq(limits.benefit$xmin, limits.benefit$xmax, length.out=7),
+                                    limits=c(limits.benefit$xmin, limits.benefit$xmax+0.1))+
+        ggplot2::theme(plot.title=element_text(hjust=0.5))
+        
       if (data.name== 'test'){
         metric.table <- cbind(metrics.df[1:7, 1],
                               sprintf("%.3f", as.numeric(results.matrix[, method])),
                               results.matrix[, paste0(method, ".CI")])
-        xmin.fact <- 0.9
-        ymax.fact <- 1.3
-        limits.table <- list(xmin=limits.benefit$xmin-limits.benefit$xmin*xmin.fact,
-                             xmax=limits.benefit$xmax,
-                             ymin=limits.benefit$ymin,
-                             ymax=limits.benefit$ymax-limits.benefit$ymax*ymax.fact)
         cal.plot <- cal.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                               bg_params=list(fill=c("lightgrey", 'white'))))),
-                                               xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)
+                                               xmin=0.05, xmax=limits.benefit$xmax, 
+                                               ymin=limits.benefit$ymin, ymax=-0.55)
       }
 
       if (data.name=='train'){

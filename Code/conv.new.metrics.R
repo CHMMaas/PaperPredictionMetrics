@@ -6,9 +6,10 @@ if(!is.null(dev.list())) dev.off()
 cat('\014')
 
 library(rms)
-library(HTEPredictionMetrics) # new metrics
 library(gridExtra)            # table in figure
 library(png)                  # read png to combine plots
+library(HTEPredictionMetrics) # new metrics
+# remotes::install_github("CHMMaas/HTEPredictionMetrics")
 source("./Code/val_prob_mi_JASON v3.R")
 
 set.seed(1)
@@ -21,6 +22,7 @@ m.X <- 12
 
 OR.control <- c(rep(1,3),rep(1.2,3),rep(1.5,3),rep(2,3))
 OR.treated <- c(rep(1,3),c(1.4,1.2,1),c(2,1.5,1),c(2.5,2,1.5))
+# 6 interactions: sum(OR.control!=OR.treated)
 
 intercept.control <- -2
 OR.treatment <- 0.8
@@ -32,7 +34,7 @@ X <- matrix(rbinom(n = n.population * m.X, 1, 0.2), n.population, m.X)
 X <- cbind(1,c(rep(0,n.population/2),rep(1,n.population/2)),X)
 
 # c = intercept
-# z = treatement
+# z = treatment
 colnames(X) <- c("c", "z", paste("x", 1:12, sep=""))
 head(X)
 
@@ -237,12 +239,17 @@ limits.table <- list(xmin=limits$xmin-limits$xmin*1.25,
 cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                                        theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                                       bg_params=list(fill=c("lightgrey", 'white'))))),
-                                                             xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)
-cal.plot$build.plot <- cal.plot$build.plot+ggplot2::ggtitle("Calibration of benefit")+theme(plot.title=element_text(hjust=0.5))
-cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax,
-                                                    size=15, fontface=2, fill="white", label.size=NA,
-                                                    label="C")
-cal.plot$build.plot <- cal.plot$build.plot+ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
+                                                             xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)+
+  ggplot2::scale_y_continuous(labels=round(seq(from=limits$ymin, to=limits$ymax, length.out=6), 1),
+                             breaks=round(seq(from=limits$ymin, to=limits$ymax, length.out=6), 1),
+                             limits=c(limits$ymin, limits$ymax))+
+  ggplot2::scale_x_continuous(labels=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
+                              breaks=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
+                              limits=c(limits$xmin, limits$xmax))+
+  ggplot2::ggtitle("Calibration of benefit")+theme(plot.title=element_text(hjust=0.5))+
+  ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax, size=15, 
+                    fontface=2, fill="white", label.size=NA, label="C")+
+  ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
 png(filename='./Results/Illustration/illustration.panel.C.png')
 show(cal.plot$build.plot)
 dev.off()

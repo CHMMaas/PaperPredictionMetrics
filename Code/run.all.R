@@ -16,8 +16,6 @@ cat('\014')
 # install.packages('optmatch')
 # install.packages('fANCOVA')
 # install.packages('remotes')
-
-# Sys.setenv(GITHUB_PAT = ' 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')
 # remotes::install_github("CHMMaas/HTEPredictionMetrics")
 
 source('./Code/common.functions.R')
@@ -29,18 +27,18 @@ set.seed(1)
 alpha.reg <- 0                # Ridge (alpha.reg=0), Lasso (alpha.reg=1), Elastic Net (alpha.reg=0.5) with no shrinkage on treatment arm indicator
 folds <- 5                    # number of folds to do cross validation on training/test and training/validation set (folds=5)
 treatment.arm <- 'life'       # life or met
-compute.new.results <- TRUE   # compute new results or use old files
+compute.new.results <- TRUE   # compute new results or not
 
 #####
 ##### Simulations
 #####
-R <- 100                      # repetitions in simulation (R = 100)
+R <- 0                         # repetitions in simulation (R = 100)
 plot.cal <- TRUE              # if TRUE calibration plot of simulation is made
 
 #####
 ##### Application
 #####
-B <- 0                      # number of bootstrap samples (additional to original sample computations) (B = 100)
+B <- 100                      # number of bootstrap samples (additional to original sample computations) (B = 100)
 effect.indicator <- TRUE      # use penalized treatment effect model to estimate treatment effect (TRUE)
 CF.indicator <- TRUE          # use causal forest to estimate treatment effect (TRUE)
 

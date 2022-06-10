@@ -65,6 +65,7 @@ for (treatment.arm in c("life", "met")){
                left=textGrob("Observed treatment effect", gp=gpar(fontsize=30), rot=90))
   grDevices::dev.off()
 }
+
 # case study figures
 for (treatment.arm in c("life", "met")){
   for (data.name in c("test", "train")){
@@ -73,7 +74,7 @@ for (treatment.arm in c("life", "met")){
       assign(paste0("appendix.case.study.", model, ".", data.name), plot)
     }
   }
-  png(file=paste0('./Results/Application/appendix.case.study.', treatment.arm, '.png'), width=1000, height=1400, units="px")
+  png(file=paste0('./Results/Application/appendix.case.study.', treatment.arm, '.png'), width=1000, height=1500, units="px")
   bottom.title <- grid::textGrob("Predicted treatment effect", gp=gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=unit(1, 'npc'),
                               heights=unit(c(0.5, 1), c('cm', 'npc')),
