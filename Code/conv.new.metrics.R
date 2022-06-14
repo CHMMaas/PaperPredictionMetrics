@@ -2,14 +2,14 @@
 ####### SIMULATION EXAMPLE
 #######
 rm(list = ls(all.names = TRUE))
-if(!is.null(dev.list())) dev.off()
+if(!is.null(dev.list())) grDevices::dev.off()
 cat('\014')
 
-library(rms)
-library(gridExtra)            # table in figure
-library(png)                  # read png to combine plots
-library(HTEPredictionMetrics) # new metrics
+# library(rms)
+# library(gridExtra)            # table in figure
+# library(png)                  # read png to combine plots
 # remotes::install_github("CHMMaas/HTEPredictionMetrics")
+# library(HTEPredictionMetrics) # new metrics
 source("./Code/val_prob_mi_JASON v3.R")
 
 set.seed(1)
@@ -74,33 +74,26 @@ segments.outcome <- data.frame(x=outcome.calibration$p.mi,
                                y.lower=outcome.calibration$obs.mi.lower,
                                y.upper=outcome.calibration$obs.mi.upper)
 outcome.plot <- ggplot2::ggplot(data=df.outcome, ggplot2::aes(x=x, y=y),
-                                show.legend=TRUE)                     # set data
-outcome.plot <- outcome.plot+ggplot2::theme_light(base_size=22)               # increase font size
-outcome.plot <- outcome.plot+ggplot2::geom_line(data=df.outcome, ggplot2::aes(y=y),
-                                                col="blue", size=1)   # blue LOESS line
-outcome.plot <- outcome.plot+ggplot2::geom_segment(data=segments.outcome,
-                                               mapping=ggplot2::aes(x=x, y=y.lower, xend=x, yend=y.upper), size=1)
-outcome.plot <- outcome.plot+ggplot2::geom_point(data=segments.outcome,
-                                             mapping=ggplot2::aes(x=x, y=y), size=2)
-outcome.plot <- outcome.plot+ggplot2::geom_abline(intercept=0, linetype="dashed")# 45-degree line
-outcome.plot <- outcome.plot+ggplot2::labs(x="Predicted outcome",
-                                       y="Observed outcome", color=" ")   # axis names
-outcome.plot <- outcome.plot+ggplot2::ylim(0, 0.5)
-outcome.plot <- outcome.plot+ggplot2::xlim(0, 0.5)
-outcome.plot <- outcome.plot+ggplot2::annotate(geom="label", x=0, y=0.5,
-                                      size=15, fontface=2, fill="white", label.size=NA,
-                                      label="A")
-outcome.plot <- outcome.plot+ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
+                                show.legend=TRUE)+                     # set data
+  ggplot2::theme_light(base_size=22)+               # increase font size
+  ggplot2::geom_line(data=df.outcome, ggplot2::aes(y=y), col="blue", size=1)+   # blue LOESS line
+  ggplot2::geom_segment(data=segments.outcome, 
+                        mapping=ggplot2::aes(x=x, y=y.lower, xend=x, yend=y.upper), size=1)+
+  ggplot2::geom_point(data=segments.outcome, mapping=ggplot2::aes(x=x, y=y), size=2)+
+  ggplot2::geom_abline(intercept=0, linetype="dashed")+ # 45-degree line
+  ggplot2::labs(x="Predicted outcome", y="Observed outcome", color=" ")+   # axis names
+  ggplot2::ylim(0, 0.5)+
+  ggplot2::xlim(0, 0.5)+
+  ggplot2::annotate(geom="label", x=0, y=0.5, size=15, fontface=2, fill="white", 
+                    label.size=NA, label="A")+
+  ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
 metric.table.outcome <- cbind(c("Eavg", "E90", "C-index"),
                             sprintf("%.3f", c(outcome.calibration$e, outcome.calibration$e.90, outcome.calibration$cindex)))
 outcome.plot <- outcome.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table.outcome,
-                                               theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
-                                                                              bg_params=list(fill=c("lightgrey", 'white'))))),
-                                     xmin=0.39, xmax=0.5, ymin=0, ymax=0.05)
-outcome.plot <- outcome.plot+ggplot2::ggtitle("Calibration of outcome")+theme(plot.title=element_text(hjust=0.5))
-png(filename='./Results/Illustration/illustration.panel.A.png')
-show(outcome.plot)
-dev.off()
+                                                                             theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
+                                                                             bg_params=list(fill=c("lightgrey", 'white'))))),
+                                                                             xmin=0.39, xmax=0.5, ymin=0, ymax=0.05)+
+  ggplot2::ggtitle("Calibration of outcome")+theme(plot.title=element_text(hjust=0.5))
 
 ######
 ###### BENEFIT PREDICTION
@@ -117,7 +110,7 @@ pred.benefit <- pred.0 - pred.1
 #####
 ##### MATCH PATIENTS
 #####
-out.matching <- match.patients(Y=y, W=X[, "z"],
+out.matching <- HTEPredictionMetrics::match.patients(Y=y, W=X[, "z"],
                                X=X[, -c(1, 2)],
                                p.0=pred.0,
                                p.1=pred.1,
@@ -178,37 +171,34 @@ grouped.calibration <- function(Y=NULL, W=NULL, tau.hat=NULL, g=5, limits=NULL){
 
   # create plot
   build.plot <- ggplot2::ggplot(data=df.grouped, ggplot2::aes(x=x, y=y),
-                                show.legend=TRUE)                     # set data
-  build.plot <- build.plot+ggplot2::theme_light(base_size=22)               # increase font size
-  build.plot <- build.plot+ggplot2::geom_segment(data=df.grouped,
-                                                 mapping=ggplot2::aes(x=x, y=y.lower,
-                                                                      xend=x, yend=y.upper), size=1)
-  build.plot <- build.plot+ggplot2::geom_point(data=df.grouped,
-                                               mapping=ggplot2::aes(x=x, y=y), size=2)
-  build.plot <- build.plot+ggplot2::geom_abline(intercept=0, linetype="dashed")# 45-degree line
-  build.plot <- build.plot+ggplot2::labs(x="Predicted treatment effect",
-                                         y="Observed treatment effect", color=" ")   # axis names
-  build.plot <- build.plot+ggplot2::ylim(limits$ymin, limits$ymax)
-  build.plot <- build.plot+ggplot2::xlim(limits$xmin, limits$xmax)
-  build.plot <- build.plot+ggplot2::ggtitle("Grouped calibration of benefit")+theme(plot.title=element_text(hjust=0.5))
+                                show.legend=TRUE)+                     # set data
+    ggplot2::theme_light(base_size=22)+               # increase font size
+    ggplot2::geom_segment(data=df.grouped,
+                          mapping=ggplot2::aes(x=x, y=y.lower,
+                          xend=x, yend=y.upper), size=1)+
+    ggplot2::geom_point(data=df.grouped, mapping=ggplot2::aes(x=x, y=y), size=2)+
+    ggplot2::geom_abline(intercept=0, linetype="dashed")+# 45-degree line
+    ggplot2::labs(x="Predicted treatment effect",
+                  y="Observed treatment effect", color=" ")+   # axis names
+    ggplot2::ylim(limits$ymin, limits$ymax)+
+    ggplot2::xlim(limits$xmin, limits$xmax)+
+    ggplot2::ggtitle("Grouped calibration of benefit")+
+    ggplot2::theme(plot.title=element_text(hjust=0.5))
 
   return(build.plot)
 }
 g <- 5
 limits <- list(xmin=-0.2, xmax=0.3, ymin=-0.2, ymax=0.3)
-png(filename='./Results/Illustration/illustration.panel.B.png')
 grouped.plot <- grouped.calibration(Y=y, W=X[, "z"], tau.hat=pred.benefit, g=g, limits=limits)
 Cindex <- c("C-for-benefit", sprintf("%.3f", out.C$c.for.benefit))
 grouped.plot <- grouped.plot+ggplot2::annotation_custom(gridExtra::tableGrob(Cindex,
-                                                         theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
+                                                         theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                         bg_params=list(fill=c("lightgrey", 'white'))))),
                                                xmin=0.21, xmax=0.3, ymin=-0.2, ymax=-0.19)
 grouped.plot <- grouped.plot+ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax,
                                       size=15, fontface=2, fill="white", label.size=NA,
                                       label="B")
 grouped.plot <- grouped.plot+ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
-show(grouped.plot)
-dev.off()
 
 #####
 ##### CALCULATE NEW METRICS
@@ -224,20 +214,18 @@ metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
              out.C$c.for.benefit)
 
 # plot calibration
-cal.plot <- calibration.plot(matched.patients=out.E$matched.patients, g=g,
+cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=g,
                              limits=limits, plot.CI=FALSE, show=FALSE)
 metric.table <- cbind(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
                         "Log-loss-for-benefit", "Brier-for-benefit",
                         "C-for-benefit"),
-                      c(sprintf("%.3f", as.numeric(metrics[1:4])),
-                        sprintf("%.1f", as.numeric(metrics[5])),
-                        sprintf("%.3f", as.numeric(metrics[6:7]))))
+                      c(sprintf("%.3f", as.numeric(metrics[1:7]))))
 limits.table <- list(xmin=limits$xmin-limits$xmin*1.25,
                      xmax=limits$xmax,
                      ymin=limits$ymin,
                      ymax=limits$ymax-limits$ymax*1.1)
 cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
-                                                                       theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
+                                                                       theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                                       bg_params=list(fill=c("lightgrey", 'white'))))),
                                                              xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)+
   ggplot2::scale_y_continuous(labels=round(seq(from=limits$ymin, to=limits$ymax, length.out=6), 1),
@@ -246,13 +234,10 @@ cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra:
   ggplot2::scale_x_continuous(labels=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
                               breaks=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
                               limits=c(limits$xmin, limits$xmax))+
-  ggplot2::ggtitle("Calibration of benefit")+theme(plot.title=element_text(hjust=0.5))+
+  ggplot2::ggtitle("Calibration of benefit")+ggplot2::theme(plot.title=element_text(hjust=0.5))+
   ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax, size=15, 
                     fontface=2, fill="white", label.size=NA, label="C")+
   ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
-png(filename='./Results/Illustration/illustration.panel.C.png')
-show(cal.plot$build.plot)
-dev.off()
 
 # conventional metrics
 conv <- val.prob(pred,y,g=4)
@@ -263,14 +248,6 @@ colnames(conv.new) <- c("Metric names", "New", "Conventaional")
 conv.new
 
 # combine calibration plots into one
-for (treatment.arm in c("life", "met")){
-  png(file="./Results/Illustration/illustration.png", width=25, height=9, units="cm", res=300)
-  par(mar=rep(0, 4))
-  layout(matrix(1:3, ncol=3, byrow=TRUE))
-  for (panel.nr in c("A", "B", "C")){
-    plot(NA, xlim=0:1, ylim=0:1, xaxt="n", yaxt="n", bty="n")
-    img <- readPNG(paste0("./Results/Illustration/illustration.panel.", panel.nr, ".png"))
-    rasterImage(img, 0, 0, 1, 1)
-  }
-  dev.off()
-}
+png(file="./Results/Illustration/illustration.png", width=1500, height=500, units="px")
+gridExtra::grid.arrange(outcome.plot, grouped.plot, cal.plot$build.plot, ncol=3)
+grDevices::dev.off()

@@ -1,11 +1,6 @@
 #######
 ####### CAUSAL FOREST
 #######
-library(grf)          # for causal forest
-# https://grf-labs.github.io/grf/
-# https://grf-labs.github.io/grf/REFERENCE.html#causal-forests
-# https://grf-labs.github.io/grf/reference/causal_forest.html
-
 train.CF <- function(Y.train=NULL, X.train=NULL, W.train=NULL, results=FALSE, tune=FALSE){
   if (tune){tune.par <- "all"}    # tune when training model
   else{tune.par <- "none"}        # don't tune in case of simulating treatment effect

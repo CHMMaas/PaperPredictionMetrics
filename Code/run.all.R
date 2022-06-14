@@ -6,18 +6,19 @@ if(!is.null(dev.list())) dev.off()
 cat('\014')
 
 ####### Install packages
-## install txBenefit:
-# install.packages("devtools")
+# install.packages('devtools')
 # devtools::install_github("msadatsafavi/txBenefit")
-# install.packages('mice')
+# install.packages('dplyr')
 # install.packages('glmnet')
-# install.packages('grf')
-# install.packages('MatchIt')
-# install.packages('optmatch')
+# install.packages('gridExtra')
+# install.packages('grf') # https://grf-labs.github.io/grf/
 # install.packages('fANCOVA')
+# install.packages('MatchIt')
+# install.packages('mice')
+# install.packages('optmatch')
+# install.packages('rms')
 # install.packages('remotes')
 # remotes::install_github("CHMMaas/HTEPredictionMetrics")
-
 source('./Code/common.functions.R')
 
 # reproducability
@@ -32,13 +33,13 @@ compute.new.results <- TRUE   # compute new results or not
 #####
 ##### Simulations
 #####
-R <- 0                         # repetitions in simulation (R = 100)
+R <- 100                      # repetitions in simulation (R = 100)
 plot.cal <- TRUE              # if TRUE calibration plot of simulation is made
 
 #####
 ##### Application
 #####
-B <- 100                      # number of bootstrap samples (additional to original sample computations) (B = 100)
+B <- 0                      # number of bootstrap samples (additional to original sample computations) (B = 100)
 effect.indicator <- TRUE      # use penalized treatment effect model to estimate treatment effect (TRUE)
 CF.indicator <- TRUE          # use causal forest to estimate treatment effect (TRUE)
 

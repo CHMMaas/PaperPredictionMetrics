@@ -1,10 +1,4 @@
 #######
-####### ADD CROSS TERMS
-#######
-library(glmnet)     # Elastic Net
-library(rms)        # restricted cubic splines
-
-#######
 ####### TRAIN RISK MODEL
 #######
 train.risk <- function(treatment.arm=NULL, Y.train=NULL, X.train=NULL,

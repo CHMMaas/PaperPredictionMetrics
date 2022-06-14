@@ -1,8 +1,6 @@
 #######
 ####### LOAD DATA
 #######
-library(mice)         # imputation of missing values
-
 load.data <- function(){
   # read original data
   dat.orig <- read.csv('./Data/DPP_DPPOS.csv')

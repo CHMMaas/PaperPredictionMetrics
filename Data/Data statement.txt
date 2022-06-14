@@ -1,1 +1,1 @@
-Information on the  process of obtaining the study dataset is available at the NIDDK Repository website (www.niddkrepository.org/search/study/). The dataset can be obtained by submitting of a formal request to the NIDDK Repository.
+Information on the  process of obtaining the study dataset is available at the NIDDK Repository website (https://repository.niddk.nih.gov/studies/dpp/). The dataset can be obtained by submitting of a formal request to the NIDDK Repository.

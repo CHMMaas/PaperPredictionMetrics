@@ -1,10 +1,6 @@
 #######
 ####### COMMON FUNCTIONS
 #######
-library(HTEPredictionMetrics) # new metrics
-library(dplyr)                # bootstrap matched pairs slice()
-library(gridExtra)            # table in figure
-
 source('./Code/data.loading.R')          # Load data
 source('./Code/risk.and.effect.R')       # risk and effect model
 source('./Code/CF.R')                    # CF
@@ -121,7 +117,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 
     # STEP 5: match patient pairs by distance of covariates
     cat('Match patient pairs \n')
-    out.matching <- match.patients(Y=original.data$Y, W=original.data$W,
+    out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
                                     X=original.data$X,
                                     p.0=pred.optimal$p.0,
                                     p.1=pred.optimal$p.1,
@@ -236,13 +232,13 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 
     # PLOT CALIBRATION PLOT
     if (plot.cal){
-      cal.plot <- calibration.plot(matched.patients=out.E$matched.patients, g=5,
+      cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=5,
                                    plot.CI=FALSE, show=FALSE)
       cat("Quantiles: ", round(cal.plot$quantiles, 3), '\n')
       metric.table <- cbind(metrics.df[1:7, 1],
                             sprintf("%.3f", as.numeric(metrics)))
       plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
-                                                                   theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
+                                                                   theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                 bg_params=list(fill=c("lightgrey", 'white'))))),
                                                                    xmin=limits.table$xmin, xmax=limits.table$xmax, ymin=limits.table$ymin, ymax=limits.table$ymax)+
         ggplot2::scale_y_continuous(labels=round(seq(from=min(limits.benefit$ymin, -1), to=max(limits.benefit$ymax, 1), length.out=5), 1),
@@ -251,11 +247,12 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
         ggplot2::scale_x_continuous(labels=round(seq(from=min(limits.benefit$xmin, 0), to=max(limits.benefit$xmax, 1), length.out=5), 1),
                                     breaks=round(seq(from=min(limits.benefit$xmin, 0), to=max(limits.benefit$xmax, 1), length.out=5), 1),
                                     limits=c(limits.benefit$xmin, limits.benefit$xmax))+
-        ggplot2::theme(plot.title=element_text(hjust=0.5))+
+        ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))+
         ggplot2::annotate(geom="label", x=limits.benefit$xmin, y=limits.benefit$ymax, size=15, fontface=2, fill="white", label.size=NA,
                                                           label=panel.nr.df[panel.nr.df$name==model.name, "panel"])+
         ggplot2::theme_light(base_size=25)+                   # increase font size
-        ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+        ggplot2::theme(axis.title.x=ggplot2::element_blank(), 
+                       axis.title.y=ggplot2::element_blank())
       save(plot, file=paste0('./Results/', treatment.arm, '/', model.name, '.simulation.calibration.plot.Rdata'))
     }
   }
@@ -276,15 +273,15 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 ####### PLOT LOG ODDS
 #######
 plot.log.odss <- function(treatment.arm=NULL, model=NULL, lp.test=NULL, pred=NULL){
-  plot <- ggplot(data=data.frame(lp.test=lp.test, p.0=qlogis(pred$p.0),
-                                 p.1=qlogis(pred$p.1)), aes(x=lp.test), show.legend=TRUE)
+  plot <- ggplot2::ggplot(data=data.frame(lp.test=lp.test, p.0=qlogis(pred$p.0),
+                                 p.1=qlogis(pred$p.1)), ggplot2::aes(x=lp.test), show.legend=TRUE)
   x.lab.plot <- ""
   y.lab.plot <- ""
   plot <- plot+ggplot2::labs(x=x.lab.plot, y=y.lab.plot, color=" ")   # axis names
-  plot <- plot+ggplot2::geom_line(aes(y=p.0), color="blue", size=1)   # draw p.0
-  plot <- plot+ggplot2::geom_line(aes(y=p.1), color="red", size=1)    # draw p.1
+  plot <- plot+ggplot2::geom_line(ggplot2::aes(y=p.0), color="blue", size=1)   # draw p.0
+  plot <- plot+ggplot2::geom_line(ggplot2::aes(y=p.1), color="red", size=1)    # draw p.1
   plot <- plot+ggplot2::theme_light(base_size=25)                     # increase font size
-  plot <- plot+ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())
+  plot <- plot+ggplot2::theme(axis.title.x=ggplot2::element_blank(), axis.title.y=ggplot2::element_blank())
   panel.nr.df <- data.frame(name=c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3"), panel=c("A", "B", "C", "D"))
   if (treatment.arm=="life"){
     ymin <- -10
@@ -348,7 +345,7 @@ metric.values.three.models <- function(boot=0, pred=NULL,
     }
     else{
       # match patient pairs by distance of covariates
-      matched.df <- match.patients(Y=Y, W=W,
+      matched.df <- HTEPredictionMetrics::match.patients(Y=Y, W=W,
                                      X=X,
                                      p.0=pred.method$p.0,
                                      p.1=pred.method$p.1,
@@ -394,7 +391,7 @@ metric.values.three.models <- function(boot=0, pred=NULL,
 
     # plot calibration for training and test set
     if (boot == -1 | boot == 0){
-      cal.plot <- calibration.plot(matched.patients=out.E$matched.patients, g=5,
+      cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=5,
                                    plot.CI=TRUE, show=FALSE)
       assign(paste0('cal.plot.', method), cal.plot$build.plot)
     } else{
@@ -530,21 +527,21 @@ application <- function(original.data=NULL, treatment.arm=NULL, folds=5, B=B,
                              ymax=1.5)
       cal.plot <- eval(parse(text=paste0('matched.', data.name, '$cal.plot.', method)))
       cal.plot <- cal.plot+ggplot2::theme_light(base_size=25)+                   # increase font size
-        ggplot2::theme(axis.title.x=element_blank(), axis.title.y=element_blank())+
+        ggplot2::theme(axis.title.x=ggplot2::element_blank(), axis.title.y=ggplot2::element_blank())+
         ggplot2::scale_y_continuous(labels=seq(limits.benefit$ymin, limits.benefit$ymax, length.out=7),
                                     breaks=seq(limits.benefit$ymin, limits.benefit$ymax, length.out=7),
                                     limits=c(limits.benefit$ymin, limits.benefit$ymax+0.1))+
         ggplot2::scale_x_continuous(labels=seq(limits.benefit$xmin, limits.benefit$xmax, length.out=7),
                                     breaks=seq(limits.benefit$xmin, limits.benefit$xmax, length.out=7),
                                     limits=c(limits.benefit$xmin, limits.benefit$xmax+0.1))+
-        ggplot2::theme(plot.title=element_text(hjust=0.5))
+        ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))
         
       if (data.name== 'test'){
         metric.table <- cbind(metrics.df[1:7, 1],
                               sprintf("%.3f", as.numeric(results.matrix[, method])),
                               results.matrix[, paste0(method, ".CI")])
         cal.plot <- cal.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
-                                               theme=ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
+                                               theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                               bg_params=list(fill=c("lightgrey", 'white'))))),
                                                xmin=0.05, xmax=limits.benefit$xmax, 
                                                ymin=limits.benefit$ymin, ymax=-0.55)
