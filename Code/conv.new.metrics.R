@@ -210,14 +210,14 @@ out.OP <- HTEPredictionMetrics::OP.for.Benefit(matched.patients=matched.df,
                          CI=FALSE, message=FALSE, replace=FALSE)
 metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
              out.E$E50.for.benefit, out.E$E90.for.benefit,
-             out.OP$Log.Loss.for.Benefit, out.OP$Brier.for.Benefit,
+             out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
              out.C$c.for.benefit)
 
 # plot calibration
 cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=g,
                              limits=limits, plot.CI=FALSE, show=FALSE)
 metric.table <- cbind(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
-                        "Log-loss-for-benefit", "Brier-for-benefit",
+                        "Cross-Entropy-for-benefit", "Brier-for-benefit",
                         "C-for-benefit"),
                       c(sprintf("%.3f", as.numeric(metrics[1:7]))))
 limits.table <- list(xmin=limits$xmin-limits$xmin*1.25,

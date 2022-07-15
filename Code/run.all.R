@@ -27,13 +27,13 @@ set.seed(1)
 # set parameters
 alpha.reg <- 0                # Ridge (alpha.reg=0), Lasso (alpha.reg=1), Elastic Net (alpha.reg=0.5) with no shrinkage on treatment arm indicator
 folds <- 5                    # number of folds to do cross validation on training/test and training/validation set (folds=5)
-treatment.arm <- 'life'       # life or met
+treatment.arm <- 'met'       # life or met
 compute.new.results <- TRUE   # compute new results or not
 
 #####
 ##### Simulations
 #####
-R <- 100                      # repetitions in simulation (R = 100)
+R <- 500                      # repetitions in simulation (R = 500)
 plot.cal <- TRUE              # if TRUE calibration plot of simulation is made
 
 #####

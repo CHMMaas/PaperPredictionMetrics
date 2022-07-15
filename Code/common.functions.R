@@ -12,10 +12,10 @@ run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
   # load data
   data <- load.data()
   dat.cc.select <- select.on.treatment(treatment.arm=treatment.arm, data=data$dat.cc, scale=FALSE) # TODO: scale data?
-
+  
   # dataframe for metrics
   metrics.df <- as.data.frame(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
-                                "Log-loss-for-benefit", "Brier-for-benefit",
+                                "Cross-Entropy-for-benefit", "Brier-for-benefit",
                                 "C-for-benefit"))
   names(metrics.df) <- "Metric names"
 
@@ -224,7 +224,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                              CI=FALSE, message=FALSE, replace=FALSE)
     metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
                  out.E$E50.for.benefit, out.E$E90.for.benefit,
-                 out.OP$Log.Loss.for.Benefit, out.OP$Brier.for.Benefit,
+                 out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
                  out.C$c.for.benefit)
 
     # save metrics
@@ -362,7 +362,7 @@ metric.values.three.models <- function(boot=0, pred=NULL,
                              CI=FALSE, message=FALSE, replace=FALSE)
     metric.values <- c(overall.cal.measure, out.E$Eavg.for.benefit,
                        out.E$E50.for.benefit, out.E$E90.for.benefit,
-                       out.OP$Log.Loss.for.Benefit, out.OP$Brier.for.Benefit,
+                       out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
                        out.C$c.for.benefit)
     assign(paste0('metric.values.', method), metric.values)
 
@@ -415,7 +415,7 @@ application <- function(original.data=NULL, treatment.arm=NULL, folds=5, B=B,
                         metrics.df=NULL, effect=FALSE, CF=FALSE, saved.results=NULL){
   # split training and test set
   n <- length(original.data$Y)
-
+  
   # split train and test set
   split.ratio <- 0.7
   ind.train <- 1:(floor(n*split.ratio))
@@ -455,10 +455,9 @@ application <- function(original.data=NULL, treatment.arm=NULL, folds=5, B=B,
   #####
   # obtain training set
   test.data <- original.data$data[ind.test,]
-  select.test <- select.on.treatment(treatment.arm=treatment.arm, data=test.data, scale=FALSE)
-  Y.test <- select.test$Y
-  X.test <- select.test$X
-  W.test <- select.test$W
+  Y.test <- original.data$Y[ind.test]
+  X.test <- original.data$X[ind.test,]
+  W.test <- original.data$W[ind.test]
   cat("Number of observations for test set: ", length(Y.test), "\n")
 
   # test models on test fold

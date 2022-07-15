@@ -15,7 +15,7 @@ for (treatment.arm in c("life", "met")){
     load(paste0('./Results/', treatment.arm, "/log.odds.", model, ".Rdata"))
     assign(paste0("log.odds.", model), plot)
   }
-  grDevices::png(file=paste0('./Results/Simulation/log.odds.', treatment.arm, '.png'), width=960, height=960, units="px")
+  grDevices::png(file=paste0('./Results/Simulation/log.odds.', treatment.arm, '.png'), width=1000, height=1000, units="px")
   bottom.title <- grid::textGrob("Prognostic index", gp=grid::gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
                               heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
@@ -33,7 +33,7 @@ for (treatment.arm in c("life", "met")){
     load(paste0('./Results/', treatment.arm, "/", model, ".simulation.calibration.plot.Rdata"))
     assign(paste0("simulation.", model), plot)
   }
-  grDevices::png(file=paste0('./Results/Simulation/simulation.', treatment.arm, '.png'), width=960, height=960, units="px")
+  grDevices::png(file=paste0('./Results/Simulation/simulation.', treatment.arm, '.png'), width=1000, height=1000, units="px")
   bottom.title <- grid::textGrob("Predicted treatment effect", gp=grid::gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
                               heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
@@ -53,7 +53,7 @@ for (treatment.arm in c("life", "met")){
       assign(paste0("case.study.", model, ".", data.name), plot)
     }
   }
-  grDevices::png(file=paste0('./Results/Application/case.study.', treatment.arm, '.png'), width=1000, height=1000, units="px")
+  grDevices::png(file=paste0('./Results/Application/case.study.', treatment.arm, '.png'), width=1040, height=1000, units="px")
   bottom.title <- grid::textGrob("Predicted treatment effect", gp=grid::gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
                               heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
@@ -73,7 +73,7 @@ for (treatment.arm in c("life", "met")){
       assign(paste0("appendix.case.study.", model, ".", data.name), plot)
     }
   }
-  grDevices::png(file=paste0('./Results/Application/appendix.case.study.', treatment.arm, '.png'), width=1000, height=1500, units="px")
+  grDevices::png(file=paste0('./Results/Application/appendix.case.study.', treatment.arm, '.png'), width=1040, height=1500, units="px")
   bottom.title <- grid::textGrob("Predicted treatment effect", gp=grid::gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
                               heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
