@@ -28,13 +28,14 @@ set.seed(1)
 alpha.reg <- 0                # Ridge (alpha.reg=0), Lasso (alpha.reg=1), Elastic Net (alpha.reg=0.5) with no shrinkage on treatment arm indicator
 folds <- 5                    # number of folds to do cross validation on training/test and training/validation set (folds=5)
 treatment.arm <- 'life'       # life or met
-compute.new.results <- FALSE   # compute new results or not
+compute.new.results <- TRUE   # compute new results or not
 
 #####
 ##### Simulations
 #####
 R <- 500                      # repetitions in simulation (R = 500)
-plot.cal <- TRUE              # if TRUE calibration plot of simulation is made
+plot.cal <- TRUE              # if TRUE calibration plot of simulation is made (TRUE)
+random.matching <- FALSE       # random matching or match by covariates (FALSE)
 
 #####
 ##### Application
@@ -66,14 +67,18 @@ if (compute.new.results){
 
 results <- run.analysis(CF=CF.indicator, effect=effect.indicator, R=R,
                 name.data.set='DPP', treatment.arm=treatment.arm,
-                plot.cal=plot.cal, B=B, folds=folds, alpha.reg=alpha.reg,
+                plot.cal=plot.cal, random.matching=random.matching, B=B, folds=folds, alpha.reg=alpha.reg,
                 simulation.results=simulation.results, application.results=application.results)
 
 if (compute.new.results){
   cat("Overwriting old files..\n")
   if (R > 0 & B == 0){
-    save(results, file=paste("./Results/Simulation/simulation.results.", treatment.arm, ".RData", sep=""))
+    save(results, file=paste("./Results/Simulation/simulation.results.", 
+                             treatment.arm, ".", 
+                             ifelse(random.matching, "random", "covariates"), ".RData", sep=""))
   } else if (R == 0 & B > 0){
-    save(results, file=paste("./Results/Application/application.results.", treatment.arm, ".RData", sep=""))
+    save(results, file=paste("./Results/Application/application.results.", 
+                             treatment.arm, ".", 
+                             ifelse(random.matching, "random", "covariates"), ".RData", sep=""))
   }
 }

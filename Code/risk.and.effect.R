@@ -5,7 +5,7 @@ train.risk <- function(treatment.arm=NULL, Y.train=NULL, X.train=NULL,
                        W.train=NULL, alpha.reg=0.5, folds=5, spline=FALSE){
   # fit model with only prognostic factors
   lp.model <- stats::glm(Y.train ~ X.train, family="binomial")
-
+  
   # obtain linear predictors
   lp.train <- as.vector(X.train%*%lp.model$coefficients[-1]) # omit intercept
   lp.train.center <- lp.train - mean(lp.train)  # center LP
@@ -86,9 +86,8 @@ train.effect <- function(treatment.arm=NULL, Y.train=NULL, X.train=NULL, W.train
     # show coefficients with best lambda
     if (print){
       cat('best lambda: ', final.model$lambda, '\n')
-      result.beta <- as.data.frame(coef(final.model)[,1])
-      colnames(result.beta) <- c("Coefficients")
-      print(result.beta)
+      result.beta <- data.frame(Names=row.names(coef(final.model)), Coefficients=coef(final.model)[,1])
+      print(result.beta[order(result.beta[,"Coefficients"]),])
     }
   } else{
     final.model <- stats::glm(Y.train~X.full, family="binomial")

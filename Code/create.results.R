@@ -30,10 +30,10 @@ for (treatment.arm in c("life", "met")){
 # simulation study figures
 for (treatment.arm in c("life", "met")){
   for (model in c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3")){
-    load(paste0('./Results/', treatment.arm, "/", model, ".simulation.calibration.plot.Rdata"))
+    load(paste0('./Results/', treatment.arm, "/", model, ".simulation.calibration.plot.covariates.Rdata"))
     assign(paste0("simulation.", model), plot)
   }
-  grDevices::png(file=paste0('./Results/Simulation/simulation.', treatment.arm, '.png'), width=1000, height=1000, units="px")
+  grDevices::png(file=paste0('./Results/Simulation/simulation.', treatment.arm, '.covariates.png'), width=1000, height=1000, units="px")
   bottom.title <- grid::textGrob("Predicted treatment effect", gp=grid::gpar(fontsize=30))
   bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
                               heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
@@ -42,6 +42,24 @@ for (treatment.arm in c("life", "met")){
                simulation.suboptimal.2, simulation.suboptimal.3,
                bottom=bottom.title,
                left=grid::textGrob("Observed treatment effect", gp=grid::gpar(fontsize=30), rot=90))
+  grDevices::dev.off()
+}
+
+# simulation study figures
+for (treatment.arm in c("life", "met")){
+  for (model in c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3")){
+    load(paste0('./Results/', treatment.arm, "/", model, ".simulation.calibration.plot.random.Rdata"))
+    assign(paste0("simulation.", model), plot)
+  }
+  grDevices::png(file=paste0('./Results/Simulation/simulation.', treatment.arm, '.random.png'), width=1000, height=1000, units="px")
+  bottom.title <- grid::textGrob("Predicted treatment effect", gp=grid::gpar(fontsize=30))
+  bottom.title <- gridExtra::arrangeGrob(bottom.title, ggplot2::zeroGrob(), widths=grid::unit(1, 'npc'),
+                                         heights=grid::unit(c(0.5, 1), c('cm', 'npc')),
+                                         as.table=FALSE)
+  gridExtra::grid.arrange(simulation.optimal, simulation.suboptimal.1,
+                          simulation.suboptimal.2, simulation.suboptimal.3,
+                          bottom=bottom.title,
+                          left=grid::textGrob("Observed treatment effect", gp=grid::gpar(fontsize=30), rot=90))
   grDevices::dev.off()
 }
 

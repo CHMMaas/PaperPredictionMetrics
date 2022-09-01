@@ -10,7 +10,8 @@ cat('\014')
 # library(png)                  # read png to combine plots
 # remotes::install_github("CHMMaas/HTEPredictionMetrics")
 # library(HTEPredictionMetrics) # new metrics
-source("./Code/val_prob_mi_JASON v3.R")
+# remotes::install_github("CHMMaas/ValidationMetrics")
+# library(ValidationMetrics)    # calibration plot
 
 set.seed(1)
 
@@ -27,8 +28,8 @@ OR.treated <- c(rep(1,3),c(1.4,1.2,1),c(2,1.5,1),c(2.5,2,1.5))
 intercept.control <- -2
 OR.treatment <- 0.8
 
-beta.control <- c(intercept.control,0,log(OR.control))
-beta.treated <- c(intercept.control, log(OR.treatment) ,log(OR.treated))
+beta.control <- c(intercept.control, 0, log(OR.control))
+beta.treated <- c(intercept.control, log(OR.treatment), log(OR.treated))
 
 X <- matrix(rbinom(n = n.population * m.X, 1, 0.2), n.population, m.X)
 X <- cbind(1,c(rep(0,n.population/2),rep(1,n.population/2)),X)
@@ -38,10 +39,12 @@ X <- cbind(1,c(rep(0,n.population/2),rep(1,n.population/2)),X)
 colnames(X) <- c("c", "z", paste("x", 1:12, sep=""))
 head(X)
 
+# create linear predictor of covariates and coefficients
 logit.y <- rep(NA,n.population)
 logit.y[X[,"z"]==0] <- X[X[,"z"]==0,] %*% beta.control
 logit.y[X[,"z"]==1] <-  X[X[,"z"]==1,] %*% beta.treated
 
+# draw outcomes based on the probability plogis(logit.y)
 y <- rbinom(n.population,1,plogis(logit.y))
 
 mean(y[X[,"z"]==0])
@@ -64,8 +67,8 @@ pred <- plogis(predict(f.sample,newdata=data.frame(X)))
 ######
 lp.val <- predict(f.sample,newdata=data.frame(X), type="lp")
 y.val <- y
-val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions",save_plots=FALSE)
-outcome.calibration <- val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions",save_plots=FALSE)
+ValidationMetrics::val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions")
+outcome.calibration <- ValidationMetrics::val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions")
 
 y.smoothed <- predict(loess(y~pred,degree=2))
 df.outcome <- data.frame(x=pred, y=y.smoothed)
@@ -86,14 +89,15 @@ outcome.plot <- ggplot2::ggplot(data=df.outcome, ggplot2::aes(x=x, y=y),
   ggplot2::xlim(0, 0.5)+
   ggplot2::annotate(geom="label", x=0, y=0.5, size=15, fontface=2, fill="white", 
                     label.size=NA, label="A")+
-  ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
+  ggplot2::theme(plot.margin=ggplot2::unit(c(0, 0.5, 0, 0), "cm"))
 metric.table.outcome <- cbind(c("Eavg", "E90", "C-index"),
-                            sprintf("%.3f", c(outcome.calibration$e, outcome.calibration$e.90, outcome.calibration$cindex)))
+                            sprintf("%.3f", c(outcome.calibration$e.avg, outcome.calibration$e.90, outcome.calibration$cindex)))
 outcome.plot <- outcome.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table.outcome,
                                                                              theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                              bg_params=list(fill=c("lightgrey", 'white'))))),
                                                                              xmin=0.39, xmax=0.5, ymin=0, ymax=0.05)+
-  ggplot2::ggtitle("Calibration of outcome")+theme(plot.title=element_text(hjust=0.5))
+  ggplot2::ggtitle("Calibration of outcome")+
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))
 
 ######
 ###### BENEFIT PREDICTION
@@ -183,14 +187,14 @@ grouped.calibration <- function(Y=NULL, W=NULL, tau.hat=NULL, g=5, limits=NULL){
     ggplot2::ylim(limits$ymin, limits$ymax)+
     ggplot2::xlim(limits$xmin, limits$xmax)+
     ggplot2::ggtitle("Grouped calibration of benefit")+
-    ggplot2::theme(plot.title=element_text(hjust=0.5))
+    ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))
 
   return(build.plot)
 }
 g <- 5
 limits <- list(xmin=-0.2, xmax=0.3, ymin=-0.2, ymax=0.3)
 grouped.plot <- grouped.calibration(Y=y, W=X[, "z"], tau.hat=pred.benefit, g=g, limits=limits)
-Cindex <- c("C-for-benefit", sprintf("%.3f", out.C$c.for.benefit))
+Cindex <- c("C-for-benefit", sprintf("%.3f", out.C$C.for.benefit))
 grouped.plot <- grouped.plot+ggplot2::annotation_custom(gridExtra::tableGrob(Cindex,
                                                          theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                         bg_params=list(fill=c("lightgrey", 'white'))))),
@@ -198,7 +202,7 @@ grouped.plot <- grouped.plot+ggplot2::annotation_custom(gridExtra::tableGrob(Cin
 grouped.plot <- grouped.plot+ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax,
                                       size=15, fontface=2, fill="white", label.size=NA,
                                       label="B")
-grouped.plot <- grouped.plot+ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
+grouped.plot <- grouped.plot+ggplot2::theme(plot.margin=ggplot2::unit(c(0, 0.5, 0, 0), "cm"))
 
 #####
 ##### CALCULATE NEW METRICS
@@ -208,10 +212,12 @@ out.E <- HTEPredictionMetrics::E.for.Benefit(matched.patients=matched.df,
                        CI=FALSE, message=FALSE, replace=FALSE)
 out.OP <- HTEPredictionMetrics::OP.for.Benefit(matched.patients=matched.df,
                          CI=FALSE, message=FALSE, replace=FALSE)
+out.C <- HTEPredictionMetrics::C.for.Benefit(matched.patients=matched.df,
+                                             CI=FALSE, message=FALSE, replace=FALSE)
 metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
              out.E$E50.for.benefit, out.E$E90.for.benefit,
-             out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
-             out.C$c.for.benefit)
+             out.OP$Cross.entropy.for.benefit, out.OP$Brier.for.benefit,
+             out.C$C.for.benefit)
 
 # plot calibration
 cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=g,
@@ -234,13 +240,14 @@ cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra:
   ggplot2::scale_x_continuous(labels=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
                               breaks=round(seq(from=limits$xmin, to=limits$xmax, length.out=6), 1),
                               limits=c(limits$xmin, limits$xmax))+
-  ggplot2::ggtitle("Calibration of benefit")+ggplot2::theme(plot.title=element_text(hjust=0.5))+
+  ggplot2::ggtitle("Calibration of benefit")+
+  ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))+
   ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax, size=15, 
                     fontface=2, fill="white", label.size=NA, label="C")+
-  ggplot2::theme(plot.margin=unit(c(0, 0.5, 0, 0), "cm"))
+  ggplot2::theme(plot.margin=ggplot2::unit(c(0, 0.5, 0, 0), "cm"))
 
 # conventional metrics
-conv <- val.prob(pred,y,g=4)
+conv <- rms::val.prob(pred,y,g=4)
 # val.prob.ci.2 ?
 conv.metrics <- as.numeric(c(conv["Intercept"], conv["Eavg"], NA, conv["E90"], NA, conv["Brier"], conv["C (ROC)"]))
 conv.new <- cbind(metric.table, round(conv.metrics, 3))

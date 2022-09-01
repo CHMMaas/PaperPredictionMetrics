@@ -6,23 +6,25 @@ source('./Code/risk.and.effect.R')       # risk and effect model
 source('./Code/CF.R')                    # CF
 
 run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
-                         treatment.arm=NULL, plot.cal=FALSE,
-                          B=1, folds=3, alpha.reg=0.5,
+                         treatment.arm=NULL, plot.cal=FALSE, 
+                         random.matching=FALSE,
+                         B=1, folds=3, alpha.reg=0.5,
                          simulation.results=NULL, application.results=NULL){
   # load data
   data <- load.data()
   dat.cc.select <- select.on.treatment(treatment.arm=treatment.arm, data=data$dat.cc, scale=FALSE) # TODO: scale data?
   
-  # dataframe for metrics
-  metrics.df <- as.data.frame(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
-                                "Cross-Entropy-for-benefit", "Brier-for-benefit",
-                                "C-for-benefit"))
-  names(metrics.df) <- "Metric names"
-
   # SIMULATION STUDY
   if (R > 0){
+    # dataframe for metrics
+    metrics.df <- as.data.frame(c("RMSE", "Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
+                                  "Cross-Entropy-for-benefit", "Brier-for-benefit",
+                                  "C-for-benefit"))
+    names(metrics.df) <- "Metric names"
+    
     results <- simulation.study(original.data=dat.cc.select, alpha.reg=alpha.reg,
                                 folds=folds, R=R, plot.cal=plot.cal,
+                                random.matching=random.matching,
                                 treatment.arm=treatment.arm,
                                 metrics.df=metrics.df,
                                 saved.results=simulation.results)
@@ -30,6 +32,12 @@ run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
 
   # CASE STUDY
   if (B > 0){
+    # dataframe for metrics
+    metrics.df <- as.data.frame(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
+                                  "Cross-Entropy-for-benefit", "Brier-for-benefit",
+                                  "C-for-benefit"))
+    names(metrics.df) <- "Metric names"
+    
     results <- application(original.data=dat.cc.select,
                            treatment.arm=treatment.arm,
                            folds=folds, B=B,
@@ -45,16 +53,19 @@ run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
 ####### PERFORM SIMULATION STUDY
 #######
 simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
-                             plot.cal=FALSE, treatment.arm=NULL,
+                             plot.cal=FALSE, random.matching=FALSE, 
+                             treatment.arm=NULL,
                              metrics.df=NULL, saved.results=NULL){
   # names of models in simualtion study
   list.model.names <- list('optimal', 'suboptimal.1', 'suboptimal.2', 'suboptimal.3')
 
   # OBTAIN MATCHED PAIRS
   if (is.null(saved.results$dup.matched.patients)){
+    # STEP 1: train risk model
     true.model <- train.risk(treatment.arm=treatment.arm, Y.train=original.data$Y,
-                               X.train=original.data$X, W.train=original.data$W,
-                               alpha.reg=alpha.reg, folds=folds, spline=FALSE)
+                              X.train=original.data$X, 
+                              W.train=original.data$W,
+                              alpha.reg=alpha.reg, folds=folds, spline=FALSE)
 
     # STEP 2: obtain P[Y=1]
     original.probabilities <- as.numeric(predict(true.model$final.model, type="response"))
@@ -109,20 +120,33 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
 
     # plot suboptimal models
     cat('Plot log odds \n')
-    for (model.name in list.model.names){
-      pred <- eval(parse(text=paste0('pred.', model.name)))
-      plot.log.odss(treatment.arm=treatment.arm, model=model.name,
-                    lp.test=X.test$lp.test, pred=pred)
+    if (!random.matching){
+      for (model.name in list.model.names){
+        pred <- eval(parse(text=paste0('pred.', model.name)))
+        plot.log.odss(treatment.arm=treatment.arm, model=model.name,
+                      lp.test=X.test$lp.test, pred=pred)
+      }
     }
 
-    # STEP 5: match patient pairs by distance of covariates
+    # STEP 5: match patient pairs randomyl or by distance of covariates
     cat('Match patient pairs \n')
-    out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
-                                    X=original.data$X,
-                                    p.0=pred.optimal$p.0,
-                                    p.1=pred.optimal$p.1,
-                                    tau.hat=pred.optimal$tau.hat)
+    if (random.matching){
+      # randomly match patients
+      out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
+                                                           X=rep(1, length(original.data$Y)),
+                                                           p.0=pred.optimal$p.0,
+                                                           p.1=pred.optimal$p.1,
+                                                           tau.hat=pred.optimal$tau.hat)
+    } else{
+      # match using covariates
+      out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
+                                                           X=original.data$X,
+                                                           p.0=pred.optimal$p.0,
+                                                           p.1=pred.optimal$p.1,
+                                                           tau.hat=pred.optimal$tau.hat)
+    }
     matched.pairs <- out.matching$df.matched.patients
+    
     for (name.optimal in c("p.0", "p.1", "tau.hat")){
       colnames(matched.pairs)[which(colnames(matched.pairs)==name.optimal)] <- paste0(name.optimal, ".optimal")
       colnames(matched.pairs)[which(colnames(matched.pairs)==paste0("matched.", name.optimal))] <- paste0("matched.", name.optimal, ".optimal")
@@ -215,6 +239,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                              matched.p.1=eval(parse(text=paste0('dup.matched.patients$matched.p.1.', model.name))))
 
     # new metrics
+    RMSE <- sqrt(mean((pred.true$tau.hat - eval(parse(text=paste0('pred.', model.name, '$tau.hat'))))^2))
     overall.cal.measure <- mean(matched.df$matched.tau.obs) - mean(matched.df$matched.tau.hat)
     out.E <- HTEPredictionMetrics::E.for.Benefit(matched.patients=matched.df,
                            CI=FALSE, message=FALSE, replace=FALSE)
@@ -222,11 +247,11 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                            CI=FALSE, message=FALSE, replace=FALSE)
     out.OP <- HTEPredictionMetrics::OP.for.Benefit(matched.patients=matched.df,
                              CI=FALSE, message=FALSE, replace=FALSE)
-    metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
+    metrics <- c(RMSE, overall.cal.measure, out.E$Eavg.for.benefit,
                  out.E$E50.for.benefit, out.E$E90.for.benefit,
-                 out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
-                 out.C$c.for.benefit)
-
+                 out.OP$Cross.entropy.for.benefit, out.OP$Brier.for.benefit,
+                 out.C$C.for.benefit)
+    
     # save metrics
     assign(paste0(model.name, '.model.metrics'), metrics)
 
@@ -235,8 +260,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
       cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=5,
                                    plot.CI=FALSE, show=FALSE)
       cat("Quantiles: ", round(cal.plot$quantiles, 3), '\n')
-      metric.table <- cbind(metrics.df[1:7, 1],
-                            sprintf("%.3f", as.numeric(metrics)))
+      metric.table <- cbind(metrics.df[, 1], sprintf("%.3f", as.numeric(metrics)))
       plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                                    theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                 bg_params=list(fill=c("lightgrey", 'white'))))),
@@ -253,19 +277,23 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
         ggplot2::theme_light(base_size=25)+                   # increase font size
         ggplot2::theme(axis.title.x=ggplot2::element_blank(), 
                        axis.title.y=ggplot2::element_blank())
-      save(plot, file=paste0('./Results/', treatment.arm, '/', model.name, '.simulation.calibration.plot.Rdata'))
+      save(plot, file=paste0('./Results/', treatment.arm, '/', model.name, 
+                             '.simulation.calibration.plot.', 
+                             ifelse(random.matching, "random", "covariates"), '.Rdata'))
     }
   }
 
-  metric.values <- cbind(c(metrics.df[1:7,1]),
+  metric.values <- cbind(c(metrics.df[,1]),
                            c(optimal.model.metrics),
                            c(suboptimal.1.model.metrics),
                            c(suboptimal.2.model.metrics),
                            c(suboptimal.3.model.metrics))
   utils::write.table(metric.values,
-              file=paste0('./Results/', treatment.arm, '/metrics.', treatment.arm, '.suboptimal.optimal.txt'),
-              row.names=FALSE, sep=",")
-
+             file=paste0('./Results/', treatment.arm, '/metrics.', treatment.arm, 
+                         '.suboptimal.optimal.',
+                         ifelse(random.matching, "random", "covariates"), '.txt'),
+             row.names=FALSE, sep=",")
+  
   return(saved.results)
 }
 
@@ -362,8 +390,8 @@ metric.values.three.models <- function(boot=0, pred=NULL,
                              CI=FALSE, message=FALSE, replace=FALSE)
     metric.values <- c(overall.cal.measure, out.E$Eavg.for.benefit,
                        out.E$E50.for.benefit, out.E$E90.for.benefit,
-                       out.OP$Cross.Entropy.for.Benefit, out.OP$Brier.for.Benefit,
-                       out.C$c.for.benefit)
+                       out.OP$Cross.entropy.for.benefit, out.OP$Brier.for.benefit,
+                       out.C$C.for.benefit)
     assign(paste0('metric.values.', method), metric.values)
 
     # save metric values
