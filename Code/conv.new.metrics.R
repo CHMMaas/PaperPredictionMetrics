@@ -70,6 +70,10 @@ y.val <- y
 ValidationMetrics::val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions")
 outcome.calibration <- ValidationMetrics::val.prob.mi(lp.mi=lp.val,y=y.val,g=5,main="Calibration of outcome predictions")
 
+p.val <- predict(f.sample,newdata=data.frame(X), type="fitted")
+outcome.cross.entropy <- -(sum(y.val*log(p.val))+sum((1-y.val)*log(1-p.val)))/length(y.val)
+outcome.brier <- sum((y.val-p.val)^2)/length(y.val)
+
 y.smoothed <- predict(loess(y~pred,degree=2))
 df.outcome <- data.frame(x=pred, y=y.smoothed)
 segments.outcome <- data.frame(x=outcome.calibration$p.mi,
@@ -90,12 +94,16 @@ outcome.plot <- ggplot2::ggplot(data=df.outcome, ggplot2::aes(x=x, y=y),
   ggplot2::annotate(geom="label", x=0, y=0.5, size=15, fontface=2, fill="white", 
                     label.size=NA, label="A")+
   ggplot2::theme(plot.margin=ggplot2::unit(c(0, 0.5, 0, 0), "cm"))
-metric.table.outcome <- cbind(c("Eavg", "E90", "C-index"),
-                            sprintf("%.3f", c(outcome.calibration$e.avg, outcome.calibration$e.90, outcome.calibration$cindex)))
+metric.table.outcome <- cbind(c("Eavg", "E90", "Cross-entropy", "Brier score", "C-index"),
+                            sprintf("%.3f", c(outcome.calibration$e.avg, 
+                                              outcome.calibration$e.90, 
+                                              outcome.cross.entropy,
+                                              outcome.brier,
+                                              outcome.calibration$cindex)))
 outcome.plot <- outcome.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table.outcome,
                                                                              theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                              bg_params=list(fill=c("lightgrey", 'white'))))),
-                                                                             xmin=0.39, xmax=0.5, ymin=0, ymax=0.05)+
+                                                                             xmin=0.35, xmax=0.5, ymin=0, ymax=0.1)+
   ggplot2::ggtitle("Calibration of outcome")+
   ggplot2::theme(plot.title=ggplot2::element_text(hjust=0.5))
 
@@ -198,7 +206,7 @@ Cindex <- c("C-for-benefit", sprintf("%.3f", out.C$C.for.benefit))
 grouped.plot <- grouped.plot+ggplot2::annotation_custom(gridExtra::tableGrob(Cindex,
                                                          theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                         bg_params=list(fill=c("lightgrey", 'white'))))),
-                                               xmin=0.21, xmax=0.3, ymin=-0.2, ymax=-0.19)
+                                               xmin=0.22, xmax=0.3, ymin=-0.2, ymax=-0.19)
 grouped.plot <- grouped.plot+ggplot2::annotate(geom="label", x=limits$xmin, y=limits$ymax,
                                       size=15, fontface=2, fill="white", label.size=NA,
                                       label="B")
@@ -223,13 +231,13 @@ metrics <- c(overall.cal.measure, out.E$Eavg.for.benefit,
 cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=g,
                              limits=limits, plot.CI=FALSE, show=FALSE)
 metric.table <- cbind(c("Calibration-in-the-large", "Eavg-for-benefit", "E50-for-benefit", "E90-for-benefit",
-                        "Cross-Entropy-for-benefit", "Brier-for-benefit",
+                        "Cross-entropy-for-benefit", "Brier-for-benefit",
                         "C-for-benefit"),
                       c(sprintf("%.3f", as.numeric(metrics[1:7]))))
-limits.table <- list(xmin=limits$xmin-limits$xmin*1.25,
+limits.table <- list(xmin=limits$xmin-limits$xmin*1.23,
                      xmax=limits$xmax,
                      ymin=limits$ymin,
-                     ymax=limits$ymax-limits$ymax*1.1)
+                     ymax=limits$ymax-limits$ymax*1.15)
 cal.plot$build.plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                                        theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
                                                                                                       bg_params=list(fill=c("lightgrey", 'white'))))),
@@ -251,7 +259,7 @@ conv <- rms::val.prob(pred,y,g=4)
 # val.prob.ci.2 ?
 conv.metrics <- as.numeric(c(conv["Intercept"], conv["Eavg"], NA, conv["E90"], NA, conv["Brier"], conv["C (ROC)"]))
 conv.new <- cbind(metric.table, round(conv.metrics, 3))
-colnames(conv.new) <- c("Metric names", "New", "Conventaional")
+colnames(conv.new) <- c("Metric names", "New", "Conventional")
 conv.new
 
 # combine calibration plots into one

@@ -7,7 +7,8 @@ source('./Code/CF.R')                    # CF
 
 run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
                          treatment.arm=NULL, plot.cal=FALSE, 
-                         random.matching=FALSE,
+                         random.matching=FALSE, match.on.benefit=FALSE, 
+                         match.on.covariates=TRUE,
                          B=1, folds=3, alpha.reg=0.5,
                          simulation.results=NULL, application.results=NULL){
   # load data
@@ -25,6 +26,8 @@ run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
     results <- simulation.study(original.data=dat.cc.select, alpha.reg=alpha.reg,
                                 folds=folds, R=R, plot.cal=plot.cal,
                                 random.matching=random.matching,
+                                match.on.benefit=match.on.benefit,
+                                match.on.covariates=match.on.covariates,
                                 treatment.arm=treatment.arm,
                                 metrics.df=metrics.df,
                                 saved.results=simulation.results)
@@ -53,7 +56,8 @@ run.analysis <- function(CF=FALSE, effect=FALSE, R=1, name.data.set=NULL,
 ####### PERFORM SIMULATION STUDY
 #######
 simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
-                             plot.cal=FALSE, random.matching=FALSE, 
+                             plot.cal=FALSE, random.matching=FALSE,
+                             match.on.benefit=FALSE, match.on.covariates=TRUE,
                              treatment.arm=NULL,
                              metrics.df=NULL, saved.results=NULL){
   # names of models in simualtion study
@@ -113,14 +117,14 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                            mean(pred.suboptimal.3$tau.hat))*100)
     rownames(ATT.df) <- c("optimal model", "suboptimal model 1", "suboptimal model 2", "suboptimal model 3")
 
-    # save metrics
+    # save ATT
     utils::write.table(ATT.df, file=paste0('./Results/', treatment.arm, '/ATT.', treatment.arm, '.suboptimal.optimal.txt'),
                 col.names=FALSE, sep=",")
     print(ATT.df)
 
     # plot suboptimal models
     cat('Plot log odds \n')
-    if (!random.matching){
+    if (match.on.covariates){
       for (model.name in list.model.names){
         pred <- eval(parse(text=paste0('pred.', model.name)))
         plot.log.odss(treatment.arm=treatment.arm, model=model.name,
@@ -128,7 +132,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
       }
     }
 
-    # STEP 5: match patient pairs randomyl or by distance of covariates
+    # STEP 5: match patient pairs randomly, by distance of treatment effect or by distance of covariates
     cat('Match patient pairs \n')
     if (random.matching){
       # randomly match patients
@@ -137,7 +141,14 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                                                            p.0=pred.optimal$p.0,
                                                            p.1=pred.optimal$p.1,
                                                            tau.hat=pred.optimal$tau.hat)
-    } else{
+    } else if (match.on.benefit){
+      # match predicted treatment effect
+      out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
+                                                           X=pred.optimal$tau.hat,
+                                                           p.0=pred.optimal$p.0,
+                                                           p.1=pred.optimal$p.1,
+                                                           tau.hat=pred.optimal$tau.hat)
+    } else if (match.on.covariates){
       # match using covariates
       out.matching <- HTEPredictionMetrics::match.patients(Y=original.data$Y, W=original.data$W,
                                                            X=original.data$X,
@@ -165,7 +176,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
       matched.pairs <- matched.pairs[order(matched.pairs$match.id), ]
       matched.pairs[, paste0('p.0.', model.name)] <- eval(parse(text=paste0('pred.', model.name, '$p.0[-discarded]')))
       matched.pairs[, paste0('p.1.', model.name)] <- eval(parse(text=paste0('pred.', model.name, '$p.1[-discarded]')))
-      matched.pairs[, paste0('tau.hat', model.name)] <- eval(parse(text=paste0('pred.', model.name, '$tau.hat[-discarded]')))
+      matched.pairs[, paste0('tau.hat.', model.name)] <- eval(parse(text=paste0('pred.', model.name, '$tau.hat[-discarded]')))
 
       # sort on subclass and W
       matched.pairs <- matched.pairs[with(matched.pairs, order(subclass, 1-W)), ]
@@ -228,6 +239,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
   # OBTAIN MODEL METRICS AND PLOT CALIBRATION
   panel.nr.df <- data.frame(name=c("optimal", "suboptimal.1", "suboptimal.2", "suboptimal.3"), panel=c("A", "B", "C", "D"))
   cat('Obtaining model metrics... \n')
+  quantiles.calibration.plot <- c()
   for (model.name in list.model.names){
     cat('For', model.name, 'model \n')
 
@@ -237,7 +249,7 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                              matched.tau.obs=eval(parse(text=paste0('dup.matched.patients$matched.updated.tau.obs'))),
                              matched.p.0=eval(parse(text=paste0('dup.matched.patients$matched.p.0.', model.name))),
                              matched.p.1=eval(parse(text=paste0('dup.matched.patients$matched.p.1.', model.name))))
-
+    
     # new metrics
     RMSE <- sqrt(mean((pred.true$tau.hat - eval(parse(text=paste0('pred.', model.name, '$tau.hat'))))^2))
     overall.cal.measure <- mean(matched.df$matched.tau.obs) - mean(matched.df$matched.tau.hat)
@@ -260,6 +272,8 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
       cal.plot <- HTEPredictionMetrics::calibration.plot(matched.patients=out.E$matched.patients, g=5,
                                    plot.CI=FALSE, show=FALSE)
       cat("Quantiles: ", round(cal.plot$quantiles, 3), '\n')
+      quantiles.calibration.plot <- rbind(quantiles.calibration.plot, 
+                                          c(model.name, round(cal.plot$quantiles, 3)))
       metric.table <- cbind(metrics.df[, 1], sprintf("%.3f", as.numeric(metrics)))
       plot <- cal.plot$build.plot+ggplot2::annotation_custom(gridExtra::tableGrob(metric.table,
                                                                    theme=gridExtra::ttheme_default(core=list(fg_params=list(hjust=1, x=1, fontsize=14),
@@ -278,11 +292,19 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
         ggplot2::theme(axis.title.x=ggplot2::element_blank(), 
                        axis.title.y=ggplot2::element_blank())
       save(plot, file=paste0('./Results/', treatment.arm, '/', model.name, 
-                             '.simulation.calibration.plot.', 
-                             ifelse(random.matching, "random", "covariates"), '.Rdata'))
+                             '.simulation.calibration.plot', 
+                             ifelse(random.matching, ".random", ""),
+                             ifelse(match.on.benefit, ".benefit", ""),
+                             ifelse(match.on.covariates, ".covariates", ""), '.Rdata'))
     }
   }
 
+  utils::write.table(quantiles.calibration.plot, 
+                     file=paste0('./Results/', treatment.arm, 
+                                 '/quantiles.calibration.plot.', 
+                                 treatment.arm, '.txt'),
+                     col.names=FALSE, sep=",")
+  
   metric.values <- cbind(c(metrics.df[,1]),
                            c(optimal.model.metrics),
                            c(suboptimal.1.model.metrics),
@@ -290,8 +312,10 @@ simulation.study <- function(original.data=NULL, alpha.reg=0.5, folds=5, R=1,
                            c(suboptimal.3.model.metrics))
   utils::write.table(metric.values,
              file=paste0('./Results/', treatment.arm, '/metrics.', treatment.arm, 
-                         '.suboptimal.optimal.',
-                         ifelse(random.matching, "random", "covariates"), '.txt'),
+                         '.suboptimal.optimal',
+                         ifelse(random.matching, ".random", ""),
+                         ifelse(match.on.benefit, ".benefit", ""),
+                         ifelse(match.on.covariates, ".covariates", ""), '.txt'),
              row.names=FALSE, sep=",")
   
   return(saved.results)

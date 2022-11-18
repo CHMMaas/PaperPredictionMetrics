@@ -4,4 +4,4 @@ Maas C.C.H.M., Kent D.M., Hughes M.C., Dekker R., Lingsma H.F., van Klaveren D. 
 
 # Package
 
-Find the R-package to calcualte the proposed metrics <a href="https://github.com/CHMMaas/HTEPredictionMetrics">here</a>.
+Find the R-package to calculate the proposed metrics <a href="https://github.com/CHMMaas/HTEPredictionMetrics">here</a>.

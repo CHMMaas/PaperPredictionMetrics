@@ -50,6 +50,5 @@ cat(' OC  :', round(OC, 3), '\n',
     'ICI :', round(EB$Eavg.for.benefit, 3), '\n',
     'E50 :', round(EB$E50.for.benefit, 3), '\n',
     'E90 :', round(EB$E90.for.benefit, 3), '\n',
-    'Log loss   :', round(OP$Log.Loss.for.Benefit, 3), '\n',
-    'Brier score:', round(OP$Brier.for.Benefit, 3), '\n')
-    
+    'Cross entropy:', round(OP$Cross.entropy.for.benefit, 3), '\n',
+    'Brier score  :', round(OP$Brier.for.benefit, 3), '\n')
