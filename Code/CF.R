@@ -33,6 +33,17 @@ train.CF <- function(Y.train=NULL, X.train=NULL, W.train=NULL, results=FALSE, tu
                               tune.num.trees = 1000)         # increase number of trees for parameter tuning for small samples
 
   # print(tau.forest$tuning.output)                          # print tuning output
+  openxlsx::write.xlsx(data.frame(names=cbind(c("Sample fraction", "Mtry", "Minimal node size",
+                                                 "Honesty fraction",  "Honesty prune leaves", "Alpha",
+                                                 "Imbalance penalty"), 
+                                                 values=c(tau.forest$tunable.params$sample.fraction,
+                                                   tau.forest$tunable.params$mtry,
+                                                   tau.forest$tunable.params$min.node.size,
+                                                   tau.forest$tunable.params$honesty.fraction,
+                                                   tau.forest$tunable.params$honesty.prune.leaves,
+                                                   tau.forest$tunable.params$alpha,
+                                                   tau.forest$tunable.params$imbalance.penalty))),
+                     file=paste0('./Results/Application/CF.param.', treatment.arm, '.xlsx'))
 
   tau.hat <- predict(tau.forest)$predictions
   mu.x <- Y.hat - (W.train - W.hat) * tau.hat                      # E[Y | X, W] = Y.hat + (W - W.hat) * (- tau.hat)

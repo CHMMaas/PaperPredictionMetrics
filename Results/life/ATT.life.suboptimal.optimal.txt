@@ -1,4 +1,5 @@
-"optimal model",12.944506254212
-"suboptimal model 1",20.3739045591107
-"suboptimal model 2",12.945027545404
-"suboptimal model 3",12.931565125518
+"optimal model",13.0478707252968
+"suboptimal model 1",20.8870800045314
+"suboptimal model 2",7.14465372967144
+"suboptimal model 3",13.0111972603749
+"suboptimal model 4",13.0078451778541

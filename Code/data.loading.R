@@ -81,8 +81,8 @@ select.on.treatment <- function(treatment.arm=NULL, data=NULL, scale=FALSE){
   # select prognostic factors
   X <- select.X(data=dat)
   if (scale){
-    X <- scale(X) # standardize prognostic factors
-  }
+    X <- scale(X, center=TRUE, scale=TRUE) # standardize prognostic factors
+  } 
 
   # create data frame with selected treatment arm
   data <- as.data.frame(cbind(id, Y, time, W, X))
